@@ -2,6 +2,7 @@
 $uri = service('uri');
 $current = $uri->getSegment(1); 
 
+// Helper function untuk cek active state
 function set_active($segment, $check) {
     return ($segment == $check) ? 'bg-primary text-white shadow-sm' : 'text-secondary hover-bg-light';
 }
@@ -9,6 +10,10 @@ function set_active($segment, $check) {
 $role = session()->get('role');
 $isAdminOwnerManager = in_array($role, ['admin', 'owner', 'manager']);
 $canViewLogs = in_array($role, ['admin', 'manager', 'owner', 'spv']);
+
+// Logika: Apakah Dropdown Chatbot AI harus terbuka?
+// Dropdown terbuka jika URL sekarang adalah 'bot-settings' atau 'knowledge-base'
+$isBotActive = in_array($current, ['bot-settings', 'knowledge-base']);
 ?>
 
 <div class="offcanvas-lg offcanvas-start bg-white border-end shadow-sm sidebar-custom" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
@@ -48,11 +53,41 @@ $canViewLogs = in_array($role, ['admin', 'manager', 'owner', 'spv']);
                         <i class="bi bi-houses-fill me-3"></i> Stok Unit
                     </a>
                 </li>
+                
                 <?php if($isAdminOwnerManager): ?>
                 <li class="nav-item">
                     <a class="nav-link rounded-2 d-flex align-items-center py-2 <?= set_active($current, 'users') ?>" href="/users">
                         <i class="bi bi-person-badge-fill me-3"></i> User App
                     </a>
+                </li>
+
+                <li class="nav-item mt-1">
+                    <a class="nav-link rounded-2 d-flex align-items-center justify-content-between py-2 <?= $isBotActive ? 'text-primary fw-bold bg-light' : 'text-secondary hover-bg-light' ?>" 
+                       data-bs-toggle="collapse" 
+                       href="#collapseBot" 
+                       role="button" 
+                       aria-expanded="<?= $isBotActive ? 'true' : 'false' ?>" 
+                       aria-controls="collapseBot">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-robot me-3"></i> Chatbot AI
+                        </div>
+                        <i class="bi bi-chevron-down" style="font-size: 0.8rem; transition: transform 0.2s;"></i>
+                    </a>
+
+                    <div class="collapse <?= $isBotActive ? 'show' : '' ?> mt-1 ps-3" id="collapseBot">
+                        <ul class="nav flex-column gap-1 border-start border-2 ps-2" style="border-color: #dee2e6;">
+                            <li class="nav-item">
+                                <a class="nav-link rounded-2 py-1 <?= set_active($current, 'bot-settings') ?>" href="/bot-settings" style="font-size: 0.9rem;">
+                                    Konfigurasi Bot
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link rounded-2 py-1 <?= set_active($current, 'knowledge-base') ?>" href="/knowledge-base" style="font-size: 0.9rem;">
+                                    Knowledge Base
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </li>
                 <?php endif; ?>
             </ul>
@@ -84,6 +119,11 @@ $canViewLogs = in_array($role, ['admin', 'manager', 'owner', 'spv']);
     /* STYLE UMUM */
     .hover-bg-light:hover { background-color: #f8f9fa; color: #000 !important; }
     
+    /* Animasi Panah Dropdown saat dibuka */
+    .nav-link[aria-expanded="true"] .bi-chevron-down {
+        transform: rotate(180deg);
+    }
+
     /* STYLE KHUSUS DESKTOP (Layar Besar > 992px) */
     @media (min-width: 992px) {
         .sidebar-custom {
@@ -99,13 +139,10 @@ $canViewLogs = in_array($role, ['admin', 'manager', 'owner', 'spv']);
     /* STYLE KHUSUS MOBILE (Layar Kecil < 992px) */
     @media (max-width: 991.98px) {
         .sidebar-custom {
-            /* Kita biarkan Bootstrap menangani posisi Offcanvas */
-            width: 280px; /* Sedikit lebih lebar di HP biar enak */
+            width: 280px; 
         }
-        
-        /* PENTING: Fix Z-Index agar di atas Backdrop */
         .offcanvas {
-            z-index: 1050 !important; /* Harus lebih tinggi dari backdrop (1040) */
+            z-index: 1050 !important;
         }
     }
 </style>

@@ -82,7 +82,9 @@ class Filters extends BaseFilters
                 '/',                 // Halaman Login
                 'auth/*',            // Proses login (POST)
                 'logout',            // Logout
-                'generate-password/*' // Helper password tadi (opsional)
+                'generate-password/*', // Helper password tadi (opsional)
+                'api/webhook',  // <--- TAMBAHKAN INI (JANGAN LUPA KOMA)
+                'api/webhook/*' // Jaga-jaga kalau ada slash di belakang
             ]
         ]
     ],
