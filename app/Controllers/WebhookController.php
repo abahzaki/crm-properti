@@ -20,12 +20,19 @@ class WebhookController extends BaseController {
         $db = \Config\Database::connect();
         $settings = $db->table('bot_settings')->get()->getRowArray();
 
-        if (!$settings) {
-            log_message('critical', 'Webhook Error: Bot Settings not found in DB.');
-            return $this->fail('Bot not configured', 500);
+        if (!$settings || $settings['is_active'] == 0) {
+            // Jika setting tidak ada atau bot dimatikan via switch panel
+            return $this->fail('Bot is OFF or Not Configured'); 
         }
 
-        // 3. Inisialisasi Driver WA & Parsing Data
+        // 3. Cek Saldo Token (SaaS Logic)
+        if ($settings['token_balance'] <= 0) {
+            // Opsional: Kirim notif ke Owner kalau saldo habis
+            log_message('error', 'Bot Skipped: Token Balance Empty');
+            return $this->fail('Token Habis');
+        }
+
+        // 4. Inisialisasi Driver WA & Parsing Data
         try {
             $wa = WhatsAppFactory::create($settings['wa_provider'], $settings['wa_api_token']);
             $data = $wa->parseWebhook($json); 
@@ -34,25 +41,18 @@ class WebhookController extends BaseController {
             return $this->fail($e->getMessage());
         }
 
-        // Normalisasi Nomor HP (Hapus karakter aneh biar match database akurat)
-        // Ubah 08... jadi 628... jika perlu, atau biarkan raw sesuai format Fonnte (biasanya 62...)
+        // Normalisasi Nomor HP
         $senderPhone = preg_replace('/[^0-9]/', '', $data['phone']); 
         $userMessage = trim($data['message']);
         $senderName  = $data['name'] ?? 'Unknown';
 
-        // Validasi Payload
-        if (empty($senderPhone) || empty($userMessage)) return $this->fail('Invalid Payload: Missing Phone/Message');
+        // Validasi Payload & Self Message
+        if (empty($senderPhone) || empty($userMessage)) return $this->fail('Invalid Payload');
+        if ($settings['wa_provider'] == 'fonnte' && isset($json['device_id'])) return $this->respond('Self status ignored');
 
-        // Ignor pesan status/device (Khusus Fonnte)
-        if ($settings['wa_provider'] == 'fonnte' && isset($json['device_id'])) {
-            return $this->respond('Self status ignored');
-        }
-
-        // --- LOGIC 1: MANUAL OVERRIDE (Bot On/Off via WA) ---
-        // FIX: Menggunakan kolom 'phone_number' sesuai struktur tabel users kamu
-        $adminUser = $db->table('users')
-                        ->where('phone_number', $senderPhone) // Gunakan WHERE biar presisi
-                        ->get()->getRowArray();
+        // --- LOGIC 1: MANUAL OVERRIDE (Bot On/Off via WA oleh Admin) ---
+        // Cek admin berdasarkan phone_number di tabel users
+        $adminUser = $db->table('users')->where('phone_number', $senderPhone)->get()->getRowArray();
         
         if ($adminUser) {
             $cmd = strtolower($userMessage);
@@ -68,38 +68,39 @@ class WebhookController extends BaseController {
             }
         }
 
-        // --- LOGIC 2: CEK DATABASE LEADS & UPDATE ---
-        // Mulai Transaksi Database (Biar aman)
+        // --- LOGIC 2: DATABASE LEADS & TOGGLE AUTO SAVE ---
         $db->transStart();
-
+        
         $lead = $db->table('leads')->where('phone', $senderPhone)->get()->getRowArray();
         $leadId = null;
 
         if ($lead) {
             // Lead Lama: Update Timestamp
-            $db->table('leads')->where('id', $lead['id'])->update([
-                'last_interaction_at' => date('Y-m-d H:i:s')
-            ]);
+            $db->table('leads')->where('id', $lead['id'])->update(['last_interaction_at' => date('Y-m-d H:i:s')]);
             $leadId = $lead['id'];
 
             // GUARD: Cek Status Lead (Human Handling)
-            // Jika statusnya booking/survey/closing, Bot DIAM.
             if (in_array($lead['status'], ['booking', 'survey', 'closing'])) {
-                $db->transComplete(); // Selesaikan transaksi update timestamp tadi
+                $db->transComplete();
                 return $this->respond('Lead handled by human, bot skipped.');
             }
         } else {
-            // Lead Baru: Insert
-            $newLeadData = [
-                'name'   => $senderName != 'Unknown' ? $senderName : "Lead $senderPhone",
-                'phone'  => $senderPhone,
-                'source' => 'WA Bot', // Bisa diganti 'Fonnte' atau lainnya
-                'status' => 'new',
-                'last_interaction_at' => date('Y-m-d H:i:s'),
-                'created_at' => date('Y-m-d H:i:s')
-            ];
-            $db->table('leads')->insert($newLeadData);
-            $leadId = $db->insertID();
+            // Lead Baru: Cek Toggle Auto Save
+            if ($settings['auto_save_leads'] == 1) {
+                $db->table('leads')->insert([
+                    'name'   => $senderName != 'Unknown' ? $senderName : "Lead $senderPhone",
+                    'phone'  => $senderPhone,
+                    'source' => 'WA Bot',
+                    'status' => 'new',
+                    'last_interaction_at' => date('Y-m-d H:i:s'),
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+                $leadId = $db->insertID();
+            } else {
+                // Jika OFF, biarkan leadId null (Chat tetap masuk history tanpa terikat ID Lead, atau buat logic khusus)
+                // Untuk kesederhanaan relasi database, kita bisa buat "Ghost Lead" atau biarkan NULL di chat_histories (pastikan kolom lead_id nullable)
+                $leadId = null; 
+            }
         }
 
         // Simpan Chat Masuk (User)
@@ -110,34 +111,41 @@ class WebhookController extends BaseController {
             'message'      => $userMessage,
             'created_at'   => date('Y-m-d H:i:s')
         ]);
+        
+        $db->transComplete();
 
-        $db->transComplete(); // Komit perubahan database
+        // --- LOGIC 3: AI PROCESSING & TOKEN CALCULATION ---
 
-        // --- LOGIC 3: AI PROCESSING ---
-        if ($settings['is_active'] == 0) return $this->respond('Bot is OFF');
+        // Tentukan Model & Cost
+        // Mapping: standard -> gpt-4o-mini, advanced -> gpt-4o
+        $aiModelName = ($settings['ai_model'] == 'advanced') ? 'gpt-4o' : 'gpt-4o-mini';
+        $tokenCost   = ($settings['ai_model'] == 'advanced') ? 5 : 1; // 5 Credit vs 1 Credit
+
+        // Cek lagi saldo cukup gak buat reply ini?
+        if ($settings['token_balance'] < $tokenCost) {
+            // Saldo tidak cukup untuk reply ini
+            return $this->fail('Insufficient Token Balance');
+        }
 
         // Persiapan Knowledge Base
         $knowledgeData = $db->table('bot_knowledge')->where('is_active', 1)->get()->getResultArray();
-        
         $knowledgeText = "";
         if (!empty($knowledgeData)) {
             foreach ($knowledgeData as $k) {
-                $knowledgeText .= "--- KONTEKS: {$k['title']} ---\n{$k['content_text']}\n\n";
+                $knowledgeText .= "--- INFO: {$k['title']} ---\n{$k['content_text']}\n\n";
             }
         } else {
-            $knowledgeText = "Belum ada data spesifik produk. Jawablah secara umum dan sopan sebagai Customer Service.";
+            $knowledgeText = "Belum ada data spesifik. Jawablah sopan sebagai CS.";
         }
 
         // Susun System Prompt
         $systemPrompt = $settings['behavior_prompt'] . "\n\n" . 
-                        "INSTRUKSI KHUSUS:\n" . 
-                        "1. Gunakan data berikut sebagai referensi utama:\n" . $knowledgeText . "\n" . 
-                        "2. Jawablah dengan singkat, ramah, dan persuasif.\n" .
-                        "3. Jika jawaban tidak ditemukan di data, arahkan user menghubungi Admin/Sales.";
+                        "DATABASE PENGETAHUAN:\n" . $knowledgeText . "\n" . 
+                        "INSTRUKSI: Jawablah berdasarkan data di atas. Jika tidak tahu, arahkan ke Admin.";
 
-        // Panggil AI
+        // Panggil AI (Pakai Master Key)
         try {
-            $ai = AIFactory::create($settings['ai_provider'], $settings['api_key'], $settings['ai_model']);
+            $ai = AIFactory::create($settings['ai_provider'], $settings['master_api_key'], $aiModelName);
             $reply = $ai->chat($systemPrompt, $userMessage);
 
             // Kirim Balasan WA
@@ -152,11 +160,15 @@ class WebhookController extends BaseController {
                 'created_at'   => date('Y-m-d H:i:s')
             ]);
 
-            return $this->respond('Replied via AI');
+            // --- POTONG SALDO TOKEN ---
+            $newBalance = $settings['token_balance'] - $tokenCost;
+            $db->table('bot_settings')->where('id', $settings['id'])->update(['token_balance' => $newBalance]);
+
+            return $this->respond("Replied via AI ($aiModelName). Cost: $tokenCost Credits. Remaining: $newBalance");
 
         } catch (\Exception $e) {
             log_message('error', 'AI Processing Error: ' . $e->getMessage());
-            return $this->fail('AI Error: ' . $e->getMessage());
+            return $this->fail('AI Error');
         }
     }
 }

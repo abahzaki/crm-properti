@@ -37,9 +37,8 @@ class BotSettingController extends BaseController
             'is_active'       => $this->request->getPost('is_active'),
             'wa_provider'     => $this->request->getPost('wa_provider'),
             'wa_api_token'    => $this->request->getPost('wa_api_token'),
-            'ai_provider'     => $this->request->getPost('ai_provider'),
             'ai_model'        => $this->request->getPost('ai_model'),
-            'api_key'         => $this->request->getPost('api_key'),
+            'auto_save_leads' => $this->request->getPost('auto_save_leads'),
             'behavior_prompt' => $this->request->getPost('behavior_prompt'),
             'updated_by'      => session()->get('id') // Catat siapa yg ubah
         ];
@@ -47,5 +46,19 @@ class BotSettingController extends BaseController
         $this->db->table('bot_settings')->where('id', $id)->update($data);
 
         return redirect()->to('/bot-settings')->with('success', 'Konfigurasi Bot berhasil diperbarui!');
+    }
+
+    public function topup()
+    {
+        // Ambil data user yang sedang login untuk ditampilkan di invoice
+        $db = \Config\Database::connect();
+        $user = $db->table('users')->where('id', session()->get('id'))->get()->getRowArray();
+        
+        $data = [
+            'title' => 'Invoice Topup Token',
+            'user'  => $user
+        ];
+        
+        return view('bot/topup_invoice', $data);
     }
 }
