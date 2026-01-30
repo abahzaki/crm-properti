@@ -145,6 +145,7 @@ class WebhookController extends BaseController {
 
         // Panggil AI (Pakai Master Key)
         try {
+            $temperature = (float) ($settings['ai_temperature'] ?? 0.5);
             $ai = AIFactory::create($settings['ai_provider'], $settings['master_api_key'], $aiModelName);
             $reply = $ai->chat($systemPrompt, $userMessage);
 

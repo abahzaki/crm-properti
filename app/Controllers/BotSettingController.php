@@ -38,6 +38,7 @@ class BotSettingController extends BaseController
             'wa_provider'     => $this->request->getPost('wa_provider'),
             'wa_api_token'    => $this->request->getPost('wa_api_token'),
             'ai_model'        => $this->request->getPost('ai_model'),
+            'ai_temperature'  => $this->request->getPost('ai_temperature'),
             'auto_save_leads' => $this->request->getPost('auto_save_leads'),
             'behavior_prompt' => $this->request->getPost('behavior_prompt'),
             'updated_by'      => session()->get('id') // Catat siapa yg ubah

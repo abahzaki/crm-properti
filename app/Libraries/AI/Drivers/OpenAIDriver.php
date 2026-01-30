@@ -11,17 +11,20 @@ class OpenAIDriver implements AIInterface {
         $this->model = $model;
     }
 
-    public function chat($systemPrompt, $userMessage) {
-        $url = 'https://api.openai.com/v1/chat/completions';
+    public function chat(string $systemPrompt, string $userMessage, float $temperature = 0.5): string
+    {
+        $endpoint = 'https://api.openai.com/v1/chat/completions';
         
         $data = [
-            'model' => $this->model,
+            'model' => $this->model, // Model dari construct (gpt-4o / mini)
             'messages' => [
                 ['role' => 'system', 'content' => $systemPrompt],
                 ['role' => 'user', 'content' => $userMessage]
             ],
-            'temperature' => 0.7
+            'temperature' => $temperature, // <--- INI KUNCINYA
+            'max_tokens'  => 500 // Opsional, batasi biar gak boros
         ];
+
 
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

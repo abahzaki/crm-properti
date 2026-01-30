@@ -3,7 +3,7 @@
 <?= $this->section('content') ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3><i class="bi bi-robot me-2"></i>Konfigurasi Estato Bot</h3>
+    <h3><i class="bi bi-robot me-2"></i>Konfigurasi Chatbot AI</h3>
 </div>
 
 <form action="/bot-settings/update" method="post">
@@ -57,6 +57,24 @@
                             </option>
                         </select>
                         <div class="form-text">Pilih 'Advanced' untuk analisa yang lebih kompleks.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">AI Temperature</label>
+                        <select name="ai_temperature" class="form-select bg-light">
+                            <option value="0.2" <?= ($setting['ai_temperature'] == '0.2') ? 'selected' : '' ?>>
+                                🤖 Konsisten
+                            </option>
+                            <option value="0.5" <?= ($setting['ai_temperature'] == '0.5' || $setting['ai_temperature'] == '') ? 'selected' : '' ?>>
+                                🙂 Seimbang
+                            </option>
+                            <option value="0.8" <?= ($setting['ai_temperature'] == '0.8') ? 'selected' : '' ?>>
+                                🎨 Kreatif
+                            </option>
+                        </select>
+                        <div class="form-text small">
+                            <i class="bi bi-info-circle"></i> Pilih <strong>Konsisten</strong> agar bot tidak mengarang harga di luar data PDF.
+                        </div>
                     </div>
 
                     <hr>
