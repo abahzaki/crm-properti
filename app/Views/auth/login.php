@@ -3,41 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - CRM Properti</title>
+    <title>Login - Estato App</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
     <style>
-        body { background-color: #f0f2f5; height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .login-card { width: 100%; max-width: 400px; padding: 20px; border-radius: 10px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .btn-primary { background-color: #2c3e50; border: none; }
-        .btn-primary:hover { background-color: #1a252f; }
+        :root {
+            --estato-blue: #0d6efd; /* Biru Utama Estato */
+            --estato-hover: #0b5ed7;
+        }
+
+        body { 
+            background-color: #f4f6f9; 
+            height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .login-card { 
+            width: 100%; 
+            max-width: 400px; 
+            padding: 30px; 
+            border-radius: 15px; 
+            background: white; 
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
+        }
+
+        .brand-title {
+            color: var(--estato-blue);
+            letter-spacing: 1px;
+        }
+
+        .form-control {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+        }
+
+        .form-control:focus {
+            background-color: #fff;
+            border-color: var(--estato-blue);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+        }
+
+        .btn-estato { 
+            background-color: var(--estato-blue); 
+            border: none; 
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .btn-estato:hover { 
+            background-color: var(--estato-hover); 
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+            color: white;
+        }
     </style>
 </head>
 <body>
 
     <div class="login-card">
-        <h3 class="text-center mb-4 fw-bold">CRM Properti</h3>
+        <div class="text-center mb-4">
+            <div class="mb-2">
+                <i class="bi bi-building-check text-primary" style="font-size: 3rem;"></i>
+            </div>
+            <h2 class="fw-bold brand-title mb-1">ESTATO</h2>
+            <p class="text-muted small mb-0">Smart CRM for Smart Developers</p>
+        </div>
         
         <?php if(session()->getFlashdata('error')):?>
-            <div class="alert alert-danger">
-                <?= session()->getFlashdata('error') ?>
+            <div class="alert alert-danger py-2 small d-flex align-items-center">
+                <i class="bi bi-exclamation-circle-fill me-2"></i>
+                <div><?= session()->getFlashdata('error') ?></div>
             </div>
         <?php endif;?>
 
         <form action="/auth/login" method="post">
             <div class="mb-3">
-                <label for="username" class="form-label">Username</label>
-                <input type="text" name="username" class="form-control" id="username" required autofocus placeholder="Masukkan username">
+                <label for="username" class="form-label small fw-bold text-secondary">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-person text-muted"></i></span>
+                    <input type="text" name="username" class="form-control border-start-0 ps-0" id="username" required autofocus placeholder="Masukkan username">
+                </div>
             </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
-                <input type="password" name="password" class="form-control" id="password" required placeholder="Masukkan password">
+            <div class="mb-4">
+                <label for="password" class="form-label small fw-bold text-secondary">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-lock text-muted"></i></span>
+                    <input type="password" name="password" class="form-control border-start-0 ps-0" id="password" required placeholder="Masukkan password">
+                </div>
             </div>
             <div class="d-grid">
-                <button type="submit" class="btn btn-primary">Masuk</button>
+                <button type="submit" class="btn btn-estato">
+                    Masuk Aplikasi
+                </button>
             </div>
         </form>
-        <div class="text-center mt-3 text-muted">
-            <small>&copy; 2026 CRM Properti System</small>
+
+        <div class="text-center mt-4 text-muted">
+            <small style="font-size: 11px;">&copy; 2026 Estato App. All rights reserved.</small>
         </div>
     </div>
 
