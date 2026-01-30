@@ -11,6 +11,11 @@ class ActivityController extends BaseController
     protected $activityModel;
     protected $leadsModel;
 
+    public function __construct()
+    {
+        $this->activityModel = new ActivityLogModel();
+        $this->leadsModel    = new LeadsModel();
+    }
 
     public function index()
     {
@@ -22,35 +27,22 @@ class ActivityController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'Akses ditolak.');
         }
 
-        // 2. Base Query (Siapkan Join Dulu)
+        // 2. Base Query
         $this->activityModel->select('activity_logs.*, users.full_name as user_name, users.role as user_role, leads.name as lead_name');
         $this->activityModel->join('users', 'users.id = activity_logs.user_id', 'left');
         $this->activityModel->join('leads', 'leads.id = activity_logs.lead_id', 'left');
 
-        // ============================================================
-        // 3. LOGIKA KHUSUS SPV (Hanya Lihat Tim Sendiri)
-        // ============================================================
+        // 3. LOGIKA KHUSUS SPV
         if ($role == 'spv') {
             $db = \Config\Database::connect();
             
-            // A. Cari siapa saja anak buah si SPV ini (berdasarkan parent_id)
-            $subordinates = $db->table('users')
-                               ->select('id')
-                               ->where('parent_id', $currentUserId)
-                               ->get()
-                               ->getResultArray();
-            
-            // B. Kumpulkan ID anak buah ke dalam Array
+            // Ambil ID bawahan + ID sendiri
+            $subordinates = $db->table('users')->select('id')->where('parent_id', $currentUserId)->get()->getResultArray();
             $teamIds = array_column($subordinates, 'id');
-            
-            // C. Masukkan ID SPV itu sendiri (supaya dia bisa lihat log kerjanya sendiri juga)
             $teamIds[] = $currentUserId;
 
-            // D. Terapkan Filter ke Query Utama
-            // "Tampilkan log DIMANA user_id ADALAH SALAH SATU DARI teamIds"
             $this->activityModel->whereIn('activity_logs.user_id', $teamIds);
         }
-        // ============================================================
 
         // 4. Eksekusi Query
         $data = [
@@ -62,17 +54,6 @@ class ActivityController extends BaseController
         return view('activities/index', $data);
     }
 
-
-    public function __construct()
-    {
-        $this->activityModel = new ActivityLogModel();
-        $this->leadsModel    = new LeadsModel();
-    }
-
-    /**
-     * [POST] /activity/save
-     * Menyimpan log aktivitas sales + Kompresi Foto
-     */
     public function save()
     {
         // 1. Validasi Input
@@ -80,66 +61,55 @@ class ActivityController extends BaseController
             'lead_id'    => 'required|integer',
             'action'     => 'required',
             'details'    => 'required',
-            // Validasi Foto: Wajib Gambar, Maks 5MB (sebelum dikompres), Format JPG/PNG
+            // Validasi Foto: Maks 5MB, JPG/PNG
             'attachment' => 'is_image[attachment]|mime_in[attachment,image/jpg,image/jpeg,image/png]|max_size[attachment,5120]', 
         ])) {
             return redirect()->back()->withInput()->with('error', 'Data tidak valid atau format foto salah.');
         }
 
         $leadId = $this->request->getPost('lead_id');
-        $action = $this->request->getPost('action');
         
         // 2. PROSES FOTO (KOMPRESI)
         $fileName = null;
         $file = $this->request->getFile('attachment');
 
-        // Cek apakah sales mengupload foto?
         if ($file && $file->isValid() && !$file->hasMoved()) {
             
-            // A. Generate nama acak agar aman
             $fileName = $file->getRandomName();
             
-            // B. Pindahkan file asli ke folder upload
-            // Pastikan folder 'public/uploads/activities' sudah dibuat
+            // Pastikan folder 'public/uploads/activities' sudah dibuat manual!
             $file->move('uploads/activities', $fileName);
 
-            // C. TEKNIK KOMPRESI (Image Manipulation)
+            // TEKNIK KOMPRESI GAMBAR
             try {
-                // Panggil Service Image CodeIgniter
                 $image = \Config\Services::image();
-
-                // Ambil path file yang baru diupload
                 $filePath = 'uploads/activities/' . $fileName;
 
                 $image->withFile($filePath)
-                    ->resize(800, 800, true, 'height') // Resize: Lebar/Tinggi max 800px, rasio tetap (maintain ratio)
-                    ->save($filePath, 60); // Save & Timpa file asli dengan Kualitas 60%
+                    ->resize(800, 800, true, 'height') 
+                    ->save($filePath, 60); // Quality 60%
                 
-                // Hasil: Foto 5MB -> Jadi sekitar 100kb - 200kb saja!
-
             } catch (\Exception $e) {
-                // Jika kompresi gagal, file asli tetap tersimpan (fail-safe)
                 log_message('error', 'Gagal kompresi gambar: ' . $e->getMessage());
             }
         }
 
-        // 3. Simpan ke Database
+        // 3. Simpan ke Database Log
         $this->activityModel->save([
             'user_id'    => session()->get('id'),
             'lead_id'    => $leadId,
-            'action'     => $action,     // Call, Visit, WhatsApp
-            'log_type'   => 'sales',     // Tandai ini log sales (bukan log sistem)
+            'action'     => $this->request->getPost('action'),
+            'log_type'   => 'sales',
             'details'    => $this->request->getPost('details'),
-            'attachment' => $fileName,   // Nama file yang sudah dikompres
+            'attachment' => $fileName,
             'ip_address' => $this->request->getIPAddress(),
             'created_at' => date('Y-m-d H:i:s')
         ]);
 
-        // 4. Update "Last Interaction" di Tabel Leads
-        // Agar lead ini naik ke atas di daftar (karena baru di-follow up)
+        // 4. Update "Last Interaction" SAJA (JANGAN UBAH STATUS)
+        // Revisi: Hapus 'status' => 'warm' agar lead Booking tidak turun kasta.
         $this->leadsModel->update($leadId, [
-            'last_interaction_at' => date('Y-m-d H:i:s'),
-            'status' => 'warm' // Opsi: Otomatis ubah status jadi 'Warm' jika sudah dihubungi
+            'last_interaction_at' => date('Y-m-d H:i:s')
         ]);
 
         return redirect()->back()->with('success', 'Aktivitas berhasil dicatat!');

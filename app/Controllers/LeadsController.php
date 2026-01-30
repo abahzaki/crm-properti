@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\LeadsModel;
 use App\Models\UnitModel;
+use App\Models\BookingsModel; // Tambahkan model booking
 
 class LeadsController extends BaseController
 {
@@ -38,7 +39,7 @@ class LeadsController extends BaseController
             // JIKA TIDAK SEARCH: Pakai Filter Tanggal
             $builder->where('leads.lead_date >=', $startDate)
                     ->where('leads.lead_date <=', $endDate);
-        } // <--- PERBAIKAN: INI KURUNG KURAWAL TUTUP YANG TADI HILANG!
+        }
 
         // --- FILTER ROLE ---
         
@@ -219,15 +220,57 @@ class LeadsController extends BaseController
         return redirect()->to('/leads')->with('success', 'Data lead berhasil diperbarui!');
     }
 
-    // 4. UPDATE STATUS (GESER KARTU)
+// 4. UPDATE STATUS (GESER KARTU + VALIDASI BOOKING PRESISI)
     public function updateStatus()
     {
          if (!$this->request->isAJAX()) return $this->response->setStatusCode(404);
-         $model = new LeadsModel();
-         $model->update($this->request->getPost('id'), [
-             'status' => $this->request->getPost('status'),
+         
+         $leadsModel = new LeadsModel();
+         $bookingsModel = new BookingsModel(); 
+         $db = \Config\Database::connect();
+
+         $id = $this->request->getPost('id');
+         $newStatus = $this->request->getPost('status');
+
+         // --- VALIDASI BOOKING GATE (SESUAI DATABASE) ---
+         // Jika mau pindah ke 'booking' atau 'closing'
+         if (in_array($newStatus, ['booking', 'closing'])) {
+            
+            // Cek tabel bookings berdasarkan lead_id
+            // Kita cari yang payment_status-nya 'approved' (Sesuai Enum di database)
+            $validBooking = $bookingsModel->where('lead_id', $id)
+                                          ->where('payment_status', 'approved') 
+                                          ->first();
+            
+            if (!$validBooking) {
+                return $this->response->setJSON([
+                    'success' => false, 
+                    'message' => 'Gagal! Belum ada pengajuan Booking yang disetujui (Approved) oleh Admin.',
+                    'token' => csrf_hash()
+                ]);
+            }
+         }
+         // -----------------------------
+
+         // Jika lolos validasi (atau status selain booking/closing), Update Status Lead
+         $leadsModel->update($id, [
+             'status' => $newStatus,
              'last_interaction_at' => date('Y-m-d H:i:s')
          ]);
+
+         // CATAT KE LOG AKTIVITAS (Otomatis)
+         $logData = [
+            'user_id'    => session()->get('id'),
+            'lead_id'    => $id,
+            'action'     => 'Status Update', 
+            'log_type'   => 'system',       
+            'details'    => 'Mengubah status menjadi: ' . strtoupper($newStatus),
+            'ip_address' => $this->request->getIPAddress(),
+            'created_at' => date('Y-m-d H:i:s')
+         ];
+         
+         $db->table('activity_logs')->insert($logData);
+
          return $this->response->setJSON(['success' => true, 'token' => csrf_hash()]);
     }
 }
