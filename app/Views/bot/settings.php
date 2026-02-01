@@ -62,36 +62,43 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold">AI Temperature</label>
                         <select name="ai_temperature" class="form-select bg-light">
-                            <option value="0.2" <?= ($setting['ai_temperature'] == '0.2') ? 'selected' : '' ?>>
-                                🤖 Konsisten
-                            </option>
-                            <option value="0.5" <?= ($setting['ai_temperature'] == '0.5' || $setting['ai_temperature'] == '') ? 'selected' : '' ?>>
-                                🙂 Seimbang
-                            </option>
-                            <option value="0.8" <?= ($setting['ai_temperature'] == '0.8') ? 'selected' : '' ?>>
-                                🎨 Kreatif
-                            </option>
+                            <option value="0.2" <?= ($setting['ai_temperature'] == '0.2') ? 'selected' : '' ?>>🤖 Konsisten</option>
+                            <option value="0.5" <?= ($setting['ai_temperature'] == '0.5' || $setting['ai_temperature'] == '') ? 'selected' : '' ?>>🙂 Seimbang</option>
+                            <option value="0.8" <?= ($setting['ai_temperature'] == '0.8') ? 'selected' : '' ?>>🎨 Kreatif</option>
                         </select>
                         <div class="form-text small">
-                            <i class="bi bi-info-circle"></i> Pilih <strong>Konsisten</strong> agar bot tidak mengarang harga di luar data PDF.
+                            <i class="bi bi-info-circle"></i> Pilih <strong>Konsisten</strong> agar bot tidak mengarang harga.
                         </div>
                     </div>
 
                     <hr>
 
                     <div class="mb-3">
-                        <label class="form-label">WhatsApp Provider</label>
-                        <select name="wa_provider" class="form-select">
-                            <option value="fonnte" <?= $setting['wa_provider'] == 'fonnte' ? 'selected' : '' ?>>Fonnte</option>
-                            </select>
+                        <label class="form-label fw-bold">WhatsApp Provider</label>
+                        <select name="wa_provider" id="waProvider" class="form-select border-primary" onchange="toggleWaFields()">
+                            <option value="fonnte" <?= $setting['wa_provider'] == 'fonnte' ? 'selected' : '' ?>>Fonnte (QR Scan)</option>
+                            <option value="meta_official" <?= $setting['wa_provider'] == 'meta_official' ? 'selected' : '' ?>>Meta Official (Cloud API)</option>
+                        </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">WA API Token (User)</label>
-                        <input type="password" name="wa_api_token" class="form-control" value="<?= esc($setting['wa_api_token']) ?>">
+                        <label class="form-label">WA API Token</label>
+                        <textarea name="wa_api_token" class="form-control" rows="2" placeholder="Masukkan Token WA..."><?= esc($setting['wa_api_token']) ?></textarea>
                     </div>
 
-                </div>
+                    <div id="metaFields" class="d-none p-2 mb-3 bg-light border rounded">
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">Phone Number ID</label>
+                            <input type="text" name="wa_phone_id" class="form-control form-control-sm" 
+                                   value="<?= esc($setting['wa_phone_id'] ?? '') ?>" placeholder="Contoh: 10923...">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label small fw-bold">Webhook Verify Token</label>
+                            <input type="text" name="wa_verify_token" class="form-control form-control-sm" 
+                                   value="<?= esc($setting['wa_verify_token'] ?? '') ?>" placeholder="estato_secret">
+                        </div>
+                    </div>
+                    </div>
             </div>
         </div>
 
@@ -121,5 +128,23 @@
         </div>
     </div>
 </form>
+
+<script>
+    function toggleWaFields() {
+        var provider = document.getElementById('waProvider').value;
+        var metaFields = document.getElementById('metaFields');
+        
+        if (provider === 'meta_official') {
+            metaFields.classList.remove('d-none');
+        } else {
+            metaFields.classList.add('d-none');
+        }
+    }
+
+    // Jalankan saat halaman dibuka
+    document.addEventListener("DOMContentLoaded", function() {
+        toggleWaFields();
+    });
+</script>
 
 <?= $this->endSection() ?>

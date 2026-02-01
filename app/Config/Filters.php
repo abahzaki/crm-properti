@@ -83,6 +83,8 @@ class Filters extends BaseFilters
                 'auth/*',            // Proses login (POST)
                 'logout',            // Logout
                 'generate-password/*', // Helper password tadi (opsional)
+                'webhook',          // <--- Tambahkan baris ini (Jalur Fonnte)
+                'webhook/*',        // Jaga-jaga jika ada sub-route
                 'api/webhook',  // <--- TAMBAHKAN INI (JANGAN LUPA KOMA)
                 'api/webhook/*' // Jaga-jaga kalau ada slash di belakang
             ]

@@ -96,8 +96,8 @@ $routes->group('knowledge-base', ['filter' => 'authGuard'], function($routes) {
 // =======================================================================
 
 // Route Webhook WA
-$routes->post('api/webhook', 'WebhookController::index');
-// $routes->match(['get', 'post'], 'api/webhook', 'WebhookController::index'); // Uncomment jika mau test via Browser
+$routes->post('webhook', 'WebhookController::index');
+$routes->match(['get', 'post'], 'webhook', 'WebhookController::index'); // Uncomment jika mau test via Browser
 
 // SYSTEM MAINTENANCE ROUTES (Hidden Developer Access)
 $routes->get('system-security/access', 'SecurityManagerController::index');

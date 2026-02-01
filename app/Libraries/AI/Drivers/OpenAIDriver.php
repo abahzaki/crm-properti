@@ -26,7 +26,7 @@ class OpenAIDriver implements AIInterface {
         ];
 
 
-        $ch = curl_init($url);
+        $ch = curl_init($endpoint);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
