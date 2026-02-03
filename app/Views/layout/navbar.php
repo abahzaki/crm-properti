@@ -5,10 +5,27 @@
             <i class="bi bi-list fs-4"></i>
         </button>
 
-        <a class="navbar-brand fw-bold text-primary d-flex align-items-center" href="/dashboard" style="letter-spacing: 0.5px;">
-            <i class="bi bi-building-check fs-4 me-2"></i>
-            <span style="font-weight: 800; font-family: sans-serif;">ESTATO</span>
-        </a>
+<a class="navbar-brand fw-bold text-primary d-flex align-items-center" href="/dashboard" style="letter-spacing: 0.5px;">
+    
+    <?php 
+    // Logika: Cek apakah user sudah upload logo custom (bukan default)
+    // Asumsi: $site adalah variabel global dari BaseController yg kita buat sebelumnya
+    $logoFile = 'assets/uploads/' . ($site['site_logo'] ?? 'default.png');
+    $isCustomLogo = ($site['site_logo'] ?? 'default.png') !== 'default.png';
+    ?>
+
+    <?php if ($isCustomLogo): ?>
+        <img src="<?= base_url($logoFile) ?>" alt="<?= $site['site_name'] ?>" 
+             class="img-fluid" style="max-height: 40px; object-fit: contain;">
+
+    <?php else: ?>
+        <i class="bi bi-building-check fs-4 me-2"></i>
+        <span style="font-weight: 800; font-family: sans-serif;">
+            <?= strtoupper($site['site_name'] ?? 'ESTATO') ?>
+        </span>
+    <?php endif; ?>
+
+</a>
 
         <div class="collapse navbar-collapse justify-content-end">
             <ul class="navbar-nav align-items-center">

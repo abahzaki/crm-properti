@@ -2,13 +2,11 @@
 $uri = service('uri');
 $current = $uri->getSegment(1); 
 
-// Helper function: Style Active yang lebih Modern (Soft UI)
+// Helper function: Style Active
 function set_active($segment, $check) {
-    // Jika aktif: Background biru muda lembut + Teks Biru Tebal + Border Kanan
     if ($segment == $check) {
         return 'active-nav-item';
     }
-    // Jika tidak aktif: Abu-abu
     return 'text-secondary hover-nav-item';
 }
 
@@ -16,15 +14,28 @@ $role = session()->get('role');
 $isAdminOwnerManager = in_array($role, ['admin', 'owner', 'manager']);
 $canViewLogs = in_array($role, ['admin', 'manager', 'owner', 'spv']);
 
-// Logic Dropdown
+// Logic untuk akses Site Settings (Hanya Admin)
+$isSuperAdmin = ($role === 'admin');
+
+// Logic Dropdown Bot
 $isBotActive = in_array($current, ['bot-settings', 'knowledge-base']);
+
+// Ambil Data Global Site Identity (Fallback jika variabel $site belum ada)
+$sidebarSiteName = $site['site_name'] ?? 'ESTATO';
+$sidebarLogo     = $site['site_logo'] ?? 'default.png';
+$useCustomLogo   = ($sidebarLogo !== 'default.png');
 ?>
 
 <div class="offcanvas-lg offcanvas-start bg-white border-end shadow-sm sidebar-custom" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
     
-    <div class="offcanvas-header bg-light border-bottom">
+    <div class="offcanvas-header bg-light border-bottom" style="height: 60px;">
         <h5 class="offcanvas-title fw-bold text-primary d-flex align-items-center">
-            <i class="bi bi-building-check me-2"></i> ESTATO
+            <?php if ($useCustomLogo): ?>
+                <img src="<?= base_url('assets/uploads/' . $sidebarLogo) ?>" alt="Logo" 
+                     style="max-height: 35px; max-width: 180px; object-fit: contain;">
+            <?php else: ?>
+                <i class="bi bi-building-check me-2"></i> <?= strtoupper($sidebarSiteName) ?>
+            <?php endif; ?>
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu" aria-label="Close"></button>
     </div>
@@ -49,6 +60,7 @@ $isBotActive = in_array($current, ['bot-settings', 'knowledge-base']);
             </ul>
 
             <hr class="my-3 border-light">
+            
             <small class="text-uppercase text-muted fw-bold ps-3 mb-2 d-block" style="font-size: 10px; letter-spacing: 1px;">Management</small>
             <ul class="nav flex-column gap-1">
                 <li class="nav-item">
@@ -124,20 +136,32 @@ $isBotActive = in_array($current, ['bot-settings', 'knowledge-base']);
             </ul>
             <?php endif; ?>
 
+            <?php if($isSuperAdmin): ?>
+            <hr class="my-3 border-light">
+            <small class="text-uppercase text-muted fw-bold ps-3 mb-2 d-block" style="font-size: 10px; letter-spacing: 1px;">System</small>
+            <ul class="nav flex-column gap-1">
+                <li class="nav-item">
+                    <a class="nav-link rounded-3 d-flex align-items-center py-2 px-3 <?= set_active($current, 'site-settings') ?>" href="/site-settings">
+                        <i class="bi bi-gear-fill me-3"></i> 
+                        <span>Site Settings</span>
+                    </a>
+                </li>
+            </ul>
+            <?php endif; ?>
+
         </div>
     </div>
 </div>
 
 <style>
-    /* 1. STATE ACTIVE: Soft Blue Background + Bold Text */
+    /* STYLE TIDAK BERUBAH DARI SEBELUMNYA */
     .active-nav-item {
-        background-color: rgba(13, 110, 253, 0.08); /* Biru sangat muda transparan */
-        color: #0d6efd !important; /* Biru Utama */
+        background-color: rgba(13, 110, 253, 0.08);
+        color: #0d6efd !important;
         font-weight: 600;
         position: relative;
     }
     
-    /* Aksen garis kecil di kiri untuk menu aktif */
     .active-nav-item::before {
         content: '';
         position: absolute;
@@ -150,22 +174,19 @@ $isBotActive = in_array($current, ['bot-settings', 'knowledge-base']);
         border-bottom-right-radius: 4px;
     }
 
-    /* 2. HOVER EFFECT: Slide sedikit ke kanan */
     .hover-nav-item {
         transition: all 0.2s ease;
     }
     .hover-nav-item:hover {
         background-color: #f8f9fa;
         color: #212529 !important;
-        transform: translateX(4px); /* Efek gerak */
+        transform: translateX(4px);
     }
 
-    /* 3. DROPDOWN ARROW ANIMATION */
     .nav-link[aria-expanded="true"] .bi-chevron-down {
         transform: rotate(180deg);
     }
 
-    /* 4. SCROLLBAR CANTIK (Webkit only) */
     .scrollbar-custom::-webkit-scrollbar {
         width: 5px;
     }
@@ -180,13 +201,12 @@ $isBotActive = in_array($current, ['bot-settings', 'knowledge-base']);
         background: #adb5bd;
     }
     
-    /* 5. RESPONSIVE SIZING */
     @media (min-width: 992px) {
         .sidebar-custom {
             position: fixed;
-            top: 60px;
+            top: 60px; /* Sesuaikan dengan tinggi Navbar Anda */
             bottom: 0;
-            width: 260px; /* Sedikit lebih lebar biar lega */
+            width: 260px;
             z-index: 1000;
             overflow-y: auto;
             border-right: 1px solid rgba(0,0,0,0.05) !important;

@@ -24,12 +24,11 @@ $routes->get('/generate-password/(:any)', function($pass){
 
 // 3. HALAMAN DASHBOARD
 $routes->get('dashboard', 'DashboardController::index', ['filter' => 'authGuard']);
-//$routes->get('/', 'DashboardController::index', ['filter' => 'authGuard']); // Disable duplicate root
 
 // 4. HALAMAN LEADS
 $routes->get('/leads', 'LeadsController::index', ['filter' => 'authGuard']);
 $routes->post('/leads/save', 'LeadsController::save', ['filter' => 'authGuard']);
-$routes->post('/leads/update-status', 'LeadsController::updateStatus', ['filter' => 'authGuard']); // Double declare fixed below
+$routes->post('/leads/update-status', 'LeadsController::updateStatus', ['filter' => 'authGuard']);
 $routes->post('/leads/update', 'LeadsController::update', ['filter' => 'authGuard']);
 
 // 5. USER MANAGEMENT (Admin/Owner Only)
@@ -81,7 +80,6 @@ $routes->group('bot-settings', ['filter' => 'authGuard'], function($routes) {
 });
 
 // B. Knowledge Base (Otak Bot - CRUD Data Teks)
-// Saya siapkan sekalian jalurnya biar nanti tinggal bikin Controllernya
 $routes->group('knowledge-base', ['filter' => 'authGuard'], function($routes) {
     $routes->get('/', 'KnowledgeBaseController::index');
     $routes->get('new', 'KnowledgeBaseController::new');
@@ -92,12 +90,21 @@ $routes->group('knowledge-base', ['filter' => 'authGuard'], function($routes) {
 });
 
 // =======================================================================
+// 11. SITE SETTINGS (White Label - Admin Only) - [BARU DITAMBAHKAN]
+// =======================================================================
+$routes->group('site-settings', ['filter' => 'authGuard'], function($routes) {
+    $routes->get('/', 'SiteSettingsController::index');
+    $routes->post('update', 'SiteSettingsController::update');
+});
+
+
+// =======================================================================
 // PUBLIC API ROUTES (Tanpa AuthGuard, dilindungi Token di Controller)
 // =======================================================================
 
 // Route Webhook WA
-$routes->post('webhook', 'WebhookController::index');
-$routes->match(['get', 'post'], 'webhook', 'WebhookController::index'); // Uncomment jika mau test via Browser
+// Menggunakan match GET & POST agar bisa diverifikasi Meta (GET) dan terima pesan (POST)
+$routes->match(['get', 'post'], 'webhook', 'WebhookController::index'); 
 
 // SYSTEM MAINTENANCE ROUTES (Hidden Developer Access)
 $routes->get('system-security/access', 'SecurityManagerController::index');

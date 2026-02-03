@@ -1,16 +1,31 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <?php 
+    // Ambil data site identity dari session atau global variable
+    // (Asumsi BaseController sudah me-load ini ke variable $site)
+    // Fallback jika variable belum ada (agar tidak error)
+    $siteName = $site['site_name'] ?? 'Estato App';
+    $siteLogo = $site['site_logo'] ?? 'default.png';
+    $companyName = $site['company_name'] ?? 'Smart CRM for Developers';
+    $footerText = $site['footer_text'] ?? '© 2026 Estato App. All rights reserved.';
+    
+    // Cek apakah pakai Logo Custom
+    $useCustomLogo = ($siteLogo !== 'default.png' && $siteLogo !== '');
+    ?>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Estato App</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <title>Login - <?= esc($siteName) ?></title>
+    
+    <link rel="icon" type="image/png" href="<?= base_url('assets/uploads/' . $siteLogo) ?>">
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     
     <style>
         :root {
-            --estato-blue: #0d6efd; /* Biru Utama Estato */
+            --estato-blue: #0d6efd; /* Biru Utama */
             --estato-hover: #0b5ed7;
         }
 
@@ -26,7 +41,7 @@
         .login-card { 
             width: 100%; 
             max-width: 400px; 
-            padding: 30px; 
+            padding: 35px; /* Sedikit diperlebar */
             border-radius: 15px; 
             background: white; 
             border: 1px solid rgba(0,0,0,0.05);
@@ -67,17 +82,33 @@
             box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
             color: white;
         }
+        
+        /* Helper untuk logo gambar agar responsif di login box */
+        .login-logo-img {
+            max-width: 100%; 
+            max-height: 80px; /* Batasi tinggi agar tidak merusak layout */
+            object-fit: contain;
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 <body>
 
     <div class="login-card">
         <div class="text-center mb-4">
-            <div class="mb-2">
-                <i class="bi bi-building-check text-primary" style="font-size: 3rem;"></i>
-            </div>
-            <h2 class="fw-bold brand-title mb-1">ESTATO</h2>
-            <p class="text-muted small mb-0">Smart CRM for Smart Developers</p>
+            
+            <?php if ($useCustomLogo): ?>
+                <img src="<?= base_url('assets/uploads/' . $siteLogo) ?>" 
+                     alt="<?= esc($siteName) ?>" class="login-logo-img">
+                
+                <?php else: ?>
+                <div class="mb-2">
+                    <i class="bi bi-building-check text-primary" style="font-size: 3rem;"></i>
+                </div>
+                <h2 class="fw-bold brand-title mb-1"><?= strtoupper(esc($siteName)) ?></h2>
+            <?php endif; ?>
+
+            <p class="text-muted small mb-0"><?= esc($companyName) ?></p>
         </div>
         
         <?php if(session()->getFlashdata('error')):?>
@@ -110,7 +141,7 @@
         </form>
 
         <div class="text-center mt-4 text-muted">
-            <small style="font-size: 11px;">&copy; 2026 Estato App. All rights reserved.</small>
+            <small style="font-size: 11px;"><?= esc($footerText) ?></small>
         </div>
     </div>
 
