@@ -154,69 +154,56 @@ $useCustomLogo   = ($sidebarLogo !== 'default.png');
 </div>
 
 <style>
-    /* STYLE TIDAK BERUBAH DARI SEBELUMNYA */
+    /* STYLE UMUM (Sama seperti sebelumnya) */
     .active-nav-item {
         background-color: rgba(13, 110, 253, 0.08);
         color: #0d6efd !important;
         font-weight: 600;
         position: relative;
     }
-    
     .active-nav-item::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 10%;
-        bottom: 10%;
-        width: 4px;
-        background-color: #0d6efd;
-        border-top-right-radius: 4px;
-        border-bottom-right-radius: 4px;
+        content: ''; position: absolute; left: 0; top: 10%; bottom: 10%; width: 4px;
+        background-color: #0d6efd; border-top-right-radius: 4px; border-bottom-right-radius: 4px;
     }
-
-    .hover-nav-item {
-        transition: all 0.2s ease;
-    }
+    .hover-nav-item { transition: all 0.2s ease; }
     .hover-nav-item:hover {
-        background-color: #f8f9fa;
-        color: #212529 !important;
-        transform: translateX(4px);
+        background-color: #f8f9fa; color: #212529 !important; transform: translateX(4px);
     }
-
-    .nav-link[aria-expanded="true"] .bi-chevron-down {
-        transform: rotate(180deg);
-    }
-
-    .scrollbar-custom::-webkit-scrollbar {
-        width: 5px;
-    }
-    .scrollbar-custom::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    .scrollbar-custom::-webkit-scrollbar-thumb {
-        background: #dee2e6;
-        border-radius: 10px;
-    }
-    .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-        background: #adb5bd;
-    }
+    .nav-link[aria-expanded="true"] .bi-chevron-down { transform: rotate(180deg); }
     
+    .scrollbar-custom::-webkit-scrollbar { width: 5px; }
+    .scrollbar-custom::-webkit-scrollbar-track { background: transparent; }
+    .scrollbar-custom::-webkit-scrollbar-thumb { background: #dee2e6; border-radius: 10px; }
+    
+    /* --- DESKTOP (Layar Besar) --- */
     @media (min-width: 992px) {
         .sidebar-custom {
             position: fixed;
-            top: 60px; /* Sesuaikan dengan tinggi Navbar Anda */
+            top: 60px; 
             bottom: 0;
-            width: 260px;
+            width: 250px;
             z-index: 1000;
             overflow-y: auto;
             border-right: 1px solid rgba(0,0,0,0.05) !important;
         }
+        .offcanvas-header { display: none; }
     }
 
+    /* --- MOBILE (Layar Kecil) - TWITTER STYLE --- */
     @media (max-width: 991.98px) {
         .sidebar-custom {
-            width: 280px; 
+            /* KUNCI 1: Lebar pakai PERSEN. 
+               80% artinya menyisakan 20% celah di kanan untuk melihat background. */
+            width: 80% !important; 
+            max-width: 320px; /* Batas maksimal biar ga kegedean di Tablet */
+            
+            /* KUNCI 2: Full Height dari ujung atas */
+            top: 0 !important;
+            height: 100vh !important;
         }
+
+        /* KUNCI 3: Pastikan Z-Index Sidebar LEBIH TINGGI dari Navbar */
+        /* Kita set 1050. Nanti Navbar harus lebih rendah (misal 1040) */
         .offcanvas {
             z-index: 1050 !important;
         }

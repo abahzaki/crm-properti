@@ -51,34 +51,43 @@ class MetaDriver implements WhatsAppInterface {
         return json_decode($result, true);
     }
 
+    // Di dalam Class MetaDriver...
+
     public function parseWebhook($data) {
-        // Parsing Struktur JSON Meta yang 'njelimet'
         try {
             $entry = $data['entry'][0] ?? null;
             $change = $entry['changes'][0] ?? null;
             $value = $change['value'] ?? null;
 
-            if (isset($value['messages'][0])) {
-                $msg = $value['messages'][0];
-                
-                // Cek apakah ini Text Message? (Bisa jadi Image/Sticker, kita fokus Text dulu)
-                $messageBody = '';
-                if ($msg['type'] == 'text') {
-                    $messageBody = $msg['text']['body'];
-                } else {
-                    $messageBody = "[User mengirim " . $msg['type'] . "]";
-                }
-
-                return [
-                    'phone'   => $msg['from'], // Meta kirim format 628xxx
-                    'name'    => $value['contacts'][0]['profile']['name'] ?? 'Unknown',
-                    'message' => $messageBody,
-                    'raw'     => $data // Simpan data mentah jika butuh debug
-                ];
+            // --- FILTER PENTING: CEK APAKAH INI PESAN? ---
+            // Meta sering kirim 'statuses' (read/delivered), kita WAJIB abaikan.
+            if (!isset($value['messages'][0])) {
+                return null; // Abaikan jika bukan pesan (misal: status update)
             }
+
+            $msg = $value['messages'][0];
+            
+            // --- FILTER PENTING: CEK TIPE PESAN ---
+            // Saat ini kita hanya terima text. Kalau user kirim gambar/sticker, handle errornya.
+            $messageBody = '';
+            if ($msg['type'] == 'text') {
+                $messageBody = $msg['text']['body'];
+            } else {
+                // Opsional: Balas "Maaf saya hanya mengerti teks" di Controller nanti
+                $messageBody = ""; 
+            }
+
+            return [
+                'id'      => $msg['id'], // <--- INI KUNCI ANTI SPAM (Message ID Unik)
+                'phone'   => $msg['from'], 
+                'name'    => $value['contacts'][0]['profile']['name'] ?? 'Unknown',
+                'message' => $messageBody,
+                'type'    => $msg['type'],
+                'raw'     => $data
+            ];
+
         } catch (\Exception $e) {
             return null;
         }
-        return null;
     }
 }
